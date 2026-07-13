@@ -1,0 +1,236 @@
+module - 1
+#---------------------------------------
+# Markov Decision Process Demonstration
+#---------------------------------------
+
+grid_size <- 4
+
+start <- c(1,1)
+goal  <- c(4,4)
+
+state <- start
+
+path <- matrix("",grid_size,grid_size)
+
+path[start[1],start[2]] <- "S"
+path[goal[1],goal[2]]   <- "G"
+
+print("Initial Grid")
+print(path)
+
+step <- 1
+
+cat("\nStarting Simulation\n\n")
+
+while(!(all(state==goal))){
+  
+  row <- state[1]
+  col <- state[2]
+  
+  possible <- list()
+  
+  if(row>1)
+    possible$Up <- c(row-1,col)
+  
+  if(row<grid_size)
+    possible$Down <- c(row+1,col)
+  
+  if(col>1)
+    possible$Left <- c(row,col-1)
+  
+  if(col<grid_size)
+    possible$Right <- c(row,col+1)
+  
+  best_action <- NULL
+  best_distance <- 100
+  
+  for(a in names(possible)){
+    
+    next_state <- possible[[a]]
+    
+    distance <- abs(goal[1]-next_state[1]) +
+      abs(goal[2]-next_state[2])
+    
+    if(distance < best_distance){
+      
+      best_distance <- distance
+      best_action <- a
+      state_next <- next_state
+      
+    }
+    
+  }
+  
+  reward <- -1
+  
+  if(all(state_next==goal))
+    reward <- 100
+  
+  cat("Step:",step,"\n")
+  
+  cat("Current State :",state,"\n")
+  cat("Action Taken  :",best_action,"\n")
+  cat("Next State    :",state_next,"\n")
+  cat("Reward        :",reward,"\n\n")
+  
+  state <- state_next
+  
+  step <- step+1
+  
+}
+
+
+module - 2
+import tensorflow as tf
+import numpy as np
+
+# Input numbers
+x = np.array([0,1,2,3,4,5,6,7,8,9], dtype=float)
+
+# Labels (0 = Even, 1 = Odd)
+y = np.array([0,1,0,1,0,1,0,1,0,1], dtype=float)
+
+# Define the input layer explicitly
+inputs = tf.keras.Input(shape=(1,))
+
+model = tf.keras.Sequential([
+    inputs,
+    tf.keras.layers.Dense(8, activation='relu'),
+    tf.keras.layers.Dense(1, activation='sigmoid')
+])
+
+model.compile(optimizer='adam',
+              loss='binary_crossentropy',
+              metrics=['accuracy'])
+
+model.fit(x, y, epochs=300, verbose=0)
+
+print("Prediction for 12:", model.predict(np.array([12]), verbose=0))
+print("Prediction for 15:", model.predict(np.array([15]), verbose=0))
+
+module - 3
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+
+# -----------------------------
+# Create Synthetic Disease Data
+# -----------------------------
+np.random.seed(42)
+
+n = 1000
+
+age = np.random.randint(20, 80, n)
+bp = np.random.randint(90, 180, n)
+sugar = np.random.randint(70, 220, n)
+cholesterol = np.random.randint(120, 320, n)
+
+# Disease rule
+disease = ((bp > 140) & (sugar > 140) | (cholesterol > 240)).astype(int)
+
+data = pd.DataFrame({
+    'Age': age,
+    'BloodPressure': bp,
+    'Sugar': sugar,
+    'Cholesterol': cholesterol,
+    'Disease': disease
+})
+
+print(data.head())
+
+# -----------------------------
+# Prepare Data
+# -----------------------------
+X = data[['Age','BloodPressure','Sugar','Cholesterol']]
+y = data['Disease']
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=0.2,
+    random_state=42
+)
+
+scaler = StandardScaler()
+
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# -----------------------------
+# Build Neural Network
+# -----------------------------
+model = Sequential([
+    Dense(16, activation='relu', input_shape=(4,)),
+    Dense(8, activation='relu'),
+    Dense(1, activation='sigmoid')
+])
+
+model.compile(
+    optimizer='adam',
+    loss='binary_crossentropy',
+    metrics=['accuracy']
+)
+
+# -----------------------------
+# Train Model
+# -----------------------------
+history = model.fit(
+    X_train,
+    y_train,
+    epochs=30,
+    batch_size=32,
+    validation_split=0.2,
+    verbose=1
+)
+
+# -----------------------------
+# Evaluate
+# -----------------------------
+loss, accuracy = model.evaluate(X_test, y_test)
+
+print("\nTest Accuracy:", accuracy)
+
+# -----------------------------
+# Predict One Patient
+# -----------------------------
+sample = np.array([[50,160,180,260]])
+sample = scaler.transform(sample)
+
+prediction = model.predict(sample)
+
+if prediction[0][0] > 0.5:
+    print("Disease Detected")
+else:
+    print("Healthy")
+
+# -----------------------------
+# Plot Accuracy
+# -----------------------------
+plt.figure(figsize=(8,5))
+plt.plot(history.history['accuracy'], label='Training Accuracy')
+plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+plt.xlabel("Epoch")
+plt.ylabel("Accuracy")
+plt.title("Model Accuracy")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# -----------------------------
+# Plot Loss
+# -----------------------------
+plt.figure(figsize=(8,5))
+plt.plot(history.history['loss'], label='Training Loss')
+plt.plot(history.history['val_loss'], label='Validation Loss')
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+plt.title("Model Loss")
+plt.legend()
+plt.grid(True)
+plt.show()
